@@ -90,6 +90,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.filenameR, filetype = QFileDialog.getOpenFileName(self,"Open file","./")
         self.img_R = cv2.imread(self.filenameR) 
     
+    # detect the corner of the chessboard
     def CornerDetect(self):
         global fileCount
         global folderPath
@@ -98,6 +99,18 @@ class MainWindow(QtWidgets.QMainWindow):
             fileName = folderPath +"/"+ str(i) + ".bmp"
             tempImg = cv2.imread(fileName)
             self.img["result"][str(i)] = tempImg
+            """ findChessboardCorners()
+            偵測影像中的棋盤格內角點。
+
+            Args:
+                image: 輸入的影像。
+                patternSize: 棋盤格內角點的數量，格式為 (columns, rows)。
+                flags: 角點偵測的選項旗標，預設為 None。
+
+            Returns:
+                ret: 是否成功找到所有角點，成功為 True，否則為 False。
+                corners: 偵測到的角點座標；若偵測失敗，通常為 None。
+            """
             ret, corner = cv2.findChessboardCorners(self.img["result"][str(i)], (11, 8), None)
             if ret == True:
                 cv2.drawChessboardCorners(self.img["result"][str(i)], (11, 8),corner, ret)
@@ -105,10 +118,10 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in range(1,fileCount + 1):
             cv2.imshow("",cv2.resize(self.img["result"][str(i)], (900, 900)))
             cv2.waitKey(500)
-            #time.sleep(1)
         cv2.waitKey(1000)
         cv2.destroyAllWindows()
 
+    # find camara's intrinsic matrix (unique)
     def FindIntrinsicMat(self):
         global fileCount
         global folderPath
@@ -121,12 +134,29 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in range(1, fileCount+1):
             fileName = folderPath +"/"+ str(i) + ".bmp"
             tempImg = cv2.imread(fileName)
-            pic = cv2.cvtColor(tempImg, cv2.COLOR_RGB2GRAY)
+            pic = cv2.cvtColor(tempImg, cv2.COLOR_BGR2GRAY)
             ret, corner = cv2.findChessboardCorners(pic, (11, 8), None)
             if ret == True:
                 objpoints.append(objp)
                 imgpoints.append(corner)
 
+        """ calibrateCamera()
+        利用多張棋盤格影像與對應的角點座標，進行相機校正，計算相機內參矩陣、鏡頭畸變係數，以及每張影像的旋轉與平移資訊。
+
+        Args:
+            objectPoints: 棋盤格角點在物體座標系中的 3D 座標。每張影像需提供對應的角點座標。
+            imagePoints: 棋盤格角點在影像中的 2D 像素座標，順序需與 objectPoints 中的角點一一對應。                             
+            imageSize: 影像尺寸，格式為 (width, height)，單位為像素。
+            cameraMatrix: 初始相機內參矩陣，形狀為 (3, 3)；若為 None，則由 OpenCV 初始化。                         
+            distCoeffs: 初始鏡頭畸變係數；若為 None，則由 OpenCV 初始化。
+
+        Returns:
+            retval: RMS 重投影誤差，數值越小通常代表校正結果越好。
+            cameraMatrix: 計算得到的相機內參矩陣，形狀為 (3, 3)。
+            distCoeffs: 計算得到的鏡頭畸變係數。
+            rvecs: 每張影像對應的旋轉向量。
+            tvecs: 每張影像對應的平移向量。
+        """
         ret, mat, dist, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, (1024, 1024), None, None)
         print("Intrinsic")
         print(mat)
@@ -145,7 +175,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in range(1,fileCount + 1):
             fileName = folderPath +"/"+ str(i) + ".bmp"
             tempImg = cv2.imread(fileName)
-            pic = cv2.cvtColor(tempImg, cv2.COLOR_RGB2GRAY)
+            pic = cv2.cvtColor(tempImg, cv2.COLOR_BGR2GRAY)
             ret, corner = cv2.findChessboardCorners(pic, (11, 8), None)
             rets.append(ret)
             corners.append(corner)
@@ -172,7 +202,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in range(1, fileCount + 1):
             fileName = folderPath +"/"+ str(i) + ".bmp"
             tempImg = cv2.imread(fileName)
-            pic = cv2.cvtColor(tempImg, cv2.COLOR_RGB2GRAY)
+            pic = cv2.cvtColor(tempImg, cv2.COLOR_BGR2GRAY)
             ret, corner = cv2.findChessboardCorners(pic, (11, 8), None)           
             if ret == True:
                 objpoints.append(objp)
@@ -195,7 +225,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in range(1, fileCount + 1):
             fileName = folderPath +"/"+ str(i) + ".bmp"
             tempImg = cv2.imread(fileName)
-            pic = cv2.cvtColor(tempImg, cv2.COLOR_RGB2GRAY)
+            pic = cv2.cvtColor(tempImg, cv2.COLOR_BGR2GRAY)
             ret, corner = cv2.findChessboardCorners(pic, (11, 8), None)           
             if ret == True:
                 objpoints.append(objp)

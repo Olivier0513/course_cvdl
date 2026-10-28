@@ -95,6 +95,11 @@ class MainWindow(QtWidgets.QMainWindow):
         global fileCount
         global folderPath
         global fileName
+
+        if 'fileCount' not in globals() or 'folderPath' not in globals():
+            print("Error: Please load the image folder first.")
+            return
+
         for i in range(1,fileCount + 1):
             fileName = folderPath +"/"+ str(i) + ".bmp"
             tempImg = cv2.imread(fileName)
@@ -130,6 +135,10 @@ class MainWindow(QtWidgets.QMainWindow):
         objp[:,:2] = np.mgrid[0:11, 0:8].T.reshape(-1, 2)
         objpoints = []
         imgpoints = []
+
+        if 'fileCount' not in globals() or 'folderPath' not in globals():
+            print("Error: Please load the image folder first.")
+            return
         
         for i in range(1, fileCount+1):
             fileName = folderPath +"/"+ str(i) + ".bmp"
@@ -140,6 +149,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 objpoints.append(objp)
                 imgpoints.append(corner)
 
+        imageSize = (pic.shape[1], pic.shape[0])
         """ calibrateCamera()
         利用多張棋盤格影像與對應的角點座標，進行相機校正，計算相機內參矩陣、鏡頭畸變係數，以及每張影像的旋轉與平移資訊。
 
@@ -157,7 +167,7 @@ class MainWindow(QtWidgets.QMainWindow):
             rvecs: 每張影像對應的旋轉向量。
             tvecs: 每張影像對應的平移向量。
         """
-        ret, mat, dist, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, (1024, 1024), None, None)
+        ret, mat, dist, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, imageSize, None, None)
         print("Intrinsic")
         print(mat)
 
@@ -171,6 +181,10 @@ class MainWindow(QtWidgets.QMainWindow):
         imgpoints = []
         rets = []
         corners = []
+
+        if 'fileCount' not in globals() or 'folderPath' not in globals():
+            print("Error: Please load the image folder first.")
+            return
 
         for i in range(1,fileCount + 1):
             fileName = folderPath +"/"+ str(i) + ".bmp"
@@ -198,6 +212,10 @@ class MainWindow(QtWidgets.QMainWindow):
         objp[:,:2] = np.mgrid[0:11, 0:8].T.reshape(-1, 2)
         objpoints = []
         imgpoints = []
+
+        if 'fileCount' not in globals() or 'folderPath' not in globals():
+            print("Error: Please load the image folder first.")
+            return
         
         for i in range(1, fileCount + 1):
             fileName = folderPath +"/"+ str(i) + ".bmp"
@@ -221,6 +239,10 @@ class MainWindow(QtWidgets.QMainWindow):
         objp[:,:2] = np.mgrid[0:11, 0:8].T.reshape(-1, 2)
         objpoints = []
         imgpoints = []
+
+        if 'fileCount' not in globals() or 'folderPath' not in globals():
+            print("Error: Please load the image folder first.")
+            return
         
         for i in range(1, fileCount + 1):
             fileName = folderPath +"/"+ str(i) + ".bmp"

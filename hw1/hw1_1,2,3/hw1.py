@@ -144,12 +144,12 @@ class MainWindow(QtWidgets.QMainWindow):
             fileName = folderPath +"/"+ str(i) + ".bmp"
             tempImg = cv2.imread(fileName)
             pic = cv2.cvtColor(tempImg, cv2.COLOR_BGR2GRAY)
+            imageSize = (pic.shape[1], pic.shape[0])
             ret, corner = cv2.findChessboardCorners(pic, (11, 8), None)
             if ret == True:
                 objpoints.append(objp)
                 imgpoints.append(corner)
 
-        imageSize = (pic.shape[1], pic.shape[0])
         """ calibrateCamera()
         利用多張棋盤格影像與對應的角點座標，進行相機校正，計算相機內參矩陣、鏡頭畸變係數，以及每張影像的旋轉與平移資訊。
 
@@ -171,6 +171,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print("Intrinsic")
         print(mat)
 
+    # find each picture's extrinsic matrix
     def FindExtrinsicMat(self):
         global fileCount
         global folderPath
@@ -190,12 +191,15 @@ class MainWindow(QtWidgets.QMainWindow):
             fileName = folderPath +"/"+ str(i) + ".bmp"
             tempImg = cv2.imread(fileName)
             pic = cv2.cvtColor(tempImg, cv2.COLOR_BGR2GRAY)
+            imageSize = (pic.shape[1], pic.shape[0])
             ret, corner = cv2.findChessboardCorners(pic, (11, 8), None)
-            rets.append(ret)
-            corners.append(corner)
-            objpoints.append(objp)
-            imgpoints.append(corner)
-        rets, mat, dist, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, (1024, 1024), None, None)
+            if ret == True:
+                rets.append(ret)
+                corners.append(corner)
+                objpoints.append(objp)
+                imgpoints.append(corner)
+
+        rets, mat, dist, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, imageSize, None, None)
         pic_num = self.ui.comboBox.currentIndex()
         rotation = cv2.Rodrigues(rvec[pic_num])[0]
 
@@ -204,6 +208,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print("[{:f}, {:f}, {:f}, {:f}]".format(rotation[1][0], rotation[1][1], rotation[1][2], tvec[pic_num][1][0]))
         print("[{:f}, {:f}, {:f}, {:f}]]".format(rotation[2][0], rotation[2][1], rotation[2][2], tvec[pic_num][2][0]))
     
+    # estimates the camera's distortion matrix (Radial Distortion & Tangential Distortion)
     def FindDistortionMat(self):
         global fileCount
         global folderPath
@@ -221,16 +226,18 @@ class MainWindow(QtWidgets.QMainWindow):
             fileName = folderPath +"/"+ str(i) + ".bmp"
             tempImg = cv2.imread(fileName)
             pic = cv2.cvtColor(tempImg, cv2.COLOR_BGR2GRAY)
+            imageSize = (pic.shape[1], pic.shape[0])
             ret, corner = cv2.findChessboardCorners(pic, (11, 8), None)           
             if ret == True:
                 objpoints.append(objp)
                 imgpoints.append(corner)
                 
-        ret, mat, dist, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, (1024, 1024), None, None)
+        ret, mat, dist, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, imageSize, None, None)
         with np.printoptions(precision = 6, suppress = True):
             print("Distortion:")
             print("[{}]".format(dist[0]))
 
+    # removes lens distortion from images and shows the undistorted results
     def UnDistort(self):
         global fileCount
         global folderPath
@@ -248,11 +255,13 @@ class MainWindow(QtWidgets.QMainWindow):
             fileName = folderPath +"/"+ str(i) + ".bmp"
             tempImg = cv2.imread(fileName)
             pic = cv2.cvtColor(tempImg, cv2.COLOR_BGR2GRAY)
-            ret, corner = cv2.findChessboardCorners(pic, (11, 8), None)           
+            imageSize = (pic.shape[1], pic.shape[0])
+            ret, corner = cv2.findChessboardCorners(pic, (11, 8), None)          
             if ret == True:
                 objpoints.append(objp)
                 imgpoints.append(corner)
-        ret, mat, dist, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, (1024, 1024), None, None)
+        ret, mat, dist, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, imageSize, None, None)
+
         for i in range(1, fileCount + 1):
             fileName = folderPath +"/"+ str(i) + ".bmp"
             tempImg = cv2.imread(fileName)
@@ -261,6 +270,7 @@ class MainWindow(QtWidgets.QMainWindow):
             cv2.imshow("1_5",pic_show)
             cv2.waitKey(500)
 
+    # show letter on chessboard
     def ShowAR(self):
         global fileCount
         global folderPath
@@ -291,6 +301,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # for each file
         for i in range(fileCount):
             for j in range(len(keyWord)):
+                # calculate shift amount for each letter
                 if j == 0:
                     dy = 5
                     dx = 7
@@ -309,8 +320,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 elif j == 5:
                     dy = 2
                     dx = 1
-                    
-                ch = np.float32(fs.getNode(keyWord[j]).mat())    
+
+                # letter A's ch.shape is (5,2,3), means 5 lines, 2 nodes, and 3 numbers represent x, y, z                    
+                ch = np.float32(fs.getNode(keyWord[j]).mat())
+                # shift each line's coordinate (only x and y)
                 for k in range(ch.shape[0]):
                     ch[k][0][0] = ch[k][0][0] + dx
                     ch[k][0][1] = ch[k][0][1] + dy
@@ -329,6 +342,7 @@ class MainWindow(QtWidgets.QMainWindow):
         cv2.waitKey(1000)
         cv2.destroyAllWindows()
 
+    # show letter on chessboard (vertical)
     def ShowARVertical(self):
         global fileCount
         global folderPath
@@ -405,15 +419,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.img_L = cv2.cvtColor(self.img_L, cv2.COLOR_BGR2GRAY)
         self.img_R = cv2.cvtColor(self.img_R, cv2.COLOR_BGR2GRAY)
         # find the disparity image
-        stereoBM = cv2.StereoBM_create(numDisparities=256, blockSize=25)
-        self.disparity = cv2.normalize(stereoBM.compute(self.img_L, self.img_R), None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        # disparity means distance between each pixel between matching points from img_L and img_R
+        disparityfactor = 16 # numDisparities must be positive and divisible by 16
+        blocksize = 25 # blockSize should be odd
+        stereoBM = cv2.StereoBM_create(numDisparities=16*disparityfactor, blockSize=blocksize)
+        # original disparity value
         self.disparity_org = stereoBM.compute(self.img_L, self.img_R)
+        # disparity value after normalize
+        self.disparity = cv2.normalize(self.disparity_org, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
         cv2.namedWindow("disparity", cv2.WINDOW_NORMAL)
         cv2.imshow("disparity", self.disparity)
         cv2.resizeWindow("disparity", 1000, 680)
 
-        event = cv2.EVENT_LBUTTONDOWN
         cv2.namedWindow('imgL', cv2.WINDOW_NORMAL)
         cv2.namedWindow('imgR_dot', cv2.WINDOW_NORMAL)
         cv2.setMouseCallback('imgL', self.drawCircle)
@@ -424,7 +442,7 @@ class MainWindow(QtWidgets.QMainWindow):
         cv2.waitKey(0)
 
     def drawCircle(self,event, x, y, flags, param):
-        if event == cv2.EVENT_LBUTTONDBLCLK:
+        if event == cv2.EVENT_LBUTTONDOWN:
             d = self.disparity_org[y][x]/16
             if d > 0:
                 img_R_dot = np.copy(self.img_R_org)

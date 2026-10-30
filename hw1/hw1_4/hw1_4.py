@@ -50,15 +50,26 @@ class MainWindow(QtWidgets.QMainWindow):
         key1, des1 = sift.detectAndCompute(self.img_gray_1, None)
         key2, des2 = sift.detectAndCompute(self.img_gray_2, None)
 
-        draw1 = cv2.drawKeypoints(self.img_gray_1, key1, 0, (0,255,0), cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
-        draw2 = cv2.drawKeypoints(self.img_gray_2, key2, 0, (0,255,0), cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
-
-        matchNum = int(self.ui.textbox.text())
+        # draw1 = cv2.drawKeypoints(self.img_gray_1, key1, 0, (0,255,0), cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
+        # draw2 = cv2.drawKeypoints(self.img_gray_2, key2, 0, (0,255,0), cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
+        # matchNum = int(self.ui.textbox.text())
 
         bf = cv2.BFMatcher()
-        matches = bf.match(des1,des2)
-        matches = sorted(matches, key = lambda x:x.distance)
-        result = cv2.drawMatches(draw1,key1,draw2,key2,matches[:matchNum],None,matchColor =(255,255,0),flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        matches = bf.knnMatch(des1, des2, k=2)
+        
+        good_matches = [[0, 0] for i in range(len(matches))]
+
+        # Lowe's Ratio Test
+        for i, pair in enumerate(matches):
+            if len(pair) == 2:
+                m, n = pair
+                if m.distance < 0.5 * n.distance:
+                    good_matches[i] = [1, 0]
+
+        # Draw the matched keypoints
+        # result = cv2.drawMatches(draw1,key1,draw2,key2,matches[:matchNum],None,matchColor =(255,255,0),flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        result = cv2.drawMatchesKnn(self.img_gray_1, key1, self.img_gray_2, key2, matches, None, matchColor=(255,255,0), singlePointColor=(0, 255, 0), matchesMask=good_matches, flags=0)
+
         plt.figure()
         plt.imshow(result)
         plt.axis('off')

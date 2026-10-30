@@ -29,9 +29,9 @@ class Ui_MainWindow(object):
         self.pushButton_4 = QtWidgets.QPushButton(self.groupBox)
         self.pushButton_4.setGeometry(QtCore.QRect(55, 310, 181, 51))
         self.pushButton_4.setObjectName("pushButton_4")
-        self.textbox = QtWidgets.QLineEdit(self.groupBox)
-        self.textbox.setGeometry(QtCore.QRect(100, 370, 100, 25))
-        self.textbox.setObjectName("textbox")
+        # self.textbox = QtWidgets.QLineEdit(self.groupBox)
+        # self.textbox.setGeometry(QtCore.QRect(100, 370, 100, 25))
+        # self.textbox.setObjectName("textbox")
         
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)

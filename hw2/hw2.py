@@ -50,7 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
         cap = cv2.VideoCapture(self.videoFileName)
         first_25_frames = []
         count = 0
-        # Get first 25 frames
+        # Get first 25 frames (to build the background model)
         if cap.isOpened() == False:
             print("Cannot open video.")
         else:
@@ -69,7 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
         first_25_array = np.array(first_25_frames)
         mean_array = first_25_array.mean(axis=0)
         std_array = first_25_array.std(axis=0)
-        std_array[np.where(std_array<5)] = 5
+        std_array[np.where(std_array<5)] = 5 # if standard deviation is less then 5, set to 5
                     
         cap = cv2.VideoCapture(self.videoFileName)
         if cap.isOpened() == False:
@@ -82,14 +82,14 @@ class MainWindow(QtWidgets.QMainWindow):
                     gray_frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
                     h = frame.shape[0]
                     w = frame.shape[1]
-                    mask = np.zeros([h,w,3])
-                    # mask                  
+                    mask = np.zeros((h, w, 3), dtype=np.uint8)
+                    # mask         
                     mask[:,:,0][np.where(abs(gray_frame - mean_array) > std_array * 5)] = 255
                     mask[:,:,1][np.where(abs(gray_frame - mean_array) > std_array * 5)] = 255
                     mask[:,:,2][np.where(abs(gray_frame - mean_array) > std_array * 5)] = 255
                     # foreground
                     foreground[np.where(mask==0)] = 0
-
+                    # show result
                     result = np.zeros([h,w*3,3])
                     result[0:h,0:w,:] = frame/255
                     result[0:h,w:2*w,:] = mask/255
@@ -115,8 +115,10 @@ class MainWindow(QtWidgets.QMainWindow):
         params.filterByArea = True
         params.minArea = 35
         params.maxArea = 90
+
         params.filterByCircularity = True
         params.minCircularity = 0.8
+
         params.filterByInertia = True
         params.minInertiaRatio = 0.5
         # Create detector and check blobs
@@ -124,6 +126,7 @@ class MainWindow(QtWidgets.QMainWindow):
         keypoints = detector.detect(frame)
 
         self.keypoints_list = []
+        frame_keypoints = frame.copy()
         for i in range(len(keypoints)):
             x = int(keypoints[i].pt[0])
             y = int(keypoints[i].pt[1])
@@ -136,13 +139,15 @@ class MainWindow(QtWidgets.QMainWindow):
     def videoTracking(self): 
         cap = cv2.VideoCapture(self.videoFileName)
         ret, old_frame = cap.read()
+        # previous frame
         old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
+
         lk_params = dict( winSize=(15,15),
                           maxLevel=2,
                           criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,10,0.03) )
         # Track points
         p0 = np.array(self.keypoints_list,dtype=np.float32)
-        # Draw line
+        # Draw line (store optical flow line, other pixel set to black)
         mask = np.zeros_like(old_frame)
 
         if cap.isOpened() == False:
@@ -151,6 +156,7 @@ class MainWindow(QtWidgets.QMainWindow):
             while True:
                 ret, frame = cap.read()    
                 if ret == True:
+                    # current frame
                     new_gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
 
                     # Calculate optical flow
@@ -161,11 +167,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     good_old = p0[st == 1]
 
                     # Draw the points' track
-                    for i, (new, old) in enumerate(zip(good_new, good_old)):
+                    for new, old in zip(good_new, good_old):
                         a, b = new.ravel()
                         c, d = old.ravel()
-                        mask = cv2.line(mask, (int(a), int(b)), (int(c), int(d)), (0,0,255), 2)
-                        frame = cv2.circle(frame, (int(a), int(b)), 5, (0,0,255), -1)
+                        mask = cv2.line(mask, (int(a), int(b)), (int(c), int(d)), (0,255,255), 2)
+                        frame = cv2.circle(frame, (int(a), int(b)), 5, (0,255,255), -1)
 
                     img = cv2.add(frame, mask)
                     cv2.imshow('2.2 Video Tracking', img)
@@ -196,6 +202,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     h,w,c = frame.shape
                     gray_frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
 
+                    # Detect the four ArUco markers position and markerID
+                    # Each marker has 4 corner positions and 1 markerID
                     arucoDictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
                     arucoParameters = cv2.aruco.DetectorParameters_create()
                     corners, ids, rejected_corners = cv2.aruco.detectMarkers(gray_frame, arucoDictionary, parameters = arucoParameters)
@@ -207,6 +215,7 @@ class MainWindow(QtWidgets.QMainWindow):
                             corners = markerCorner.reshape((4, 2))
                             topLeft, topRight, bottomRight, bottomLeft = corners
 
+                            # Get this markers 4 corners coordinates
                             topRight = ( int(topRight[0]), int(topRight[1]) )
                             bottomRight = ( int(bottomRight[0]), int(bottomRight[1]) )
                             bottomLeft = ( int(bottomLeft[0]), int(bottomLeft[1]) )
@@ -214,17 +223,19 @@ class MainWindow(QtWidgets.QMainWindow):
                             # 1  2
                             # 4  3                                               
                             if(ids[count]==1):  
-                                pt0 = topLeft
+                                pt0 = topLeft # 如果是左上的marker，座標選左上點
                             elif(ids[count]==2):
-                                pt1 = topRight
+                                pt1 = topRight # 如果是右上的marker，座標選右上點
                             elif(ids[count]==3):
-                                pt2 = bottomRight
+                                pt2 = bottomRight # 如果是右下的marker，座標選右下點
                             else:
-                                pt3 = bottomLeft
+                                pt3 = bottomLeft # 如果是左下的marker，座標選左下點
                             count = count + 1
 
-                        pts_dst = np.array([pt0,pt1,pt2,pt3])
+                        pts_dst = np.array([pt0,pt1,pt2,pt3]) # 投影的目標位置
+                        # Calculate Homography Matrix
                         homo, status = cv2.findHomography(np.float32(projectList), np.float32(pts_dst))
+                        # Get result after perspective transform
                         im_out = cv2.warpPerspective(projectImg, homo, (frame.shape[1],frame.shape[0]))
 
                         img2gray = cv2.cvtColor(im_out, cv2.COLOR_BGR2GRAY)
@@ -257,15 +268,16 @@ class MainWindow(QtWidgets.QMainWindow):
         # Reconstruct image
         imgNum = len(self.originalImg)
         h,w,c = self.originalImg[0].shape
-        data = np.array(deepcopy(self.originalImg)).reshape(imgNum,-1)
+        data = np.array(deepcopy(self.originalImg)).reshape(imgNum,-1) # Flatten each image into 1D array
 
-        pca = PCA(n_components = int(imgNum*0.8))
-        reducedImg = pca.fit_transform(data)
-        self.reconstructedImg = pca.inverse_transform(reducedImg)
+        # Reduce the component from 30 to 27
+        pca = PCA(n_components = 27)
+        reducedImg = pca.fit_transform(data) # Analyses the 2D data using PCA
+        self.reconstructedImg = pca.inverse_transform(reducedImg) # Reconstruct image from reduced data
 
         self.reconstructedImg = list(self.reconstructedImg.reshape(imgNum,h,w,c))
         for i in range(imgNum):
-            self.reconstructedImg[i] =cv2.normalize(self.reconstructedImg[i], self.reconstructedImg[i], alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,dtype = cv2.CV_8UC1 )
+            self.reconstructedImg[i] =cv2.normalize(self.reconstructedImg[i], self.reconstructedImg[i], alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,dtype = cv2.CV_8U)
         
         # Draw output
         fig, ax = plt.subplots(nrows=4, ncols=15, figsize=(30,8))
@@ -295,6 +307,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for img1,img2 in zip(self.originalImg,self.reconstructedImg): 
             ori_gray = cv2.cvtColor(img1, cv2.COLOR_RGB2GRAY)
             rc_gray = cv2.cvtColor(img2, cv2.COLOR_RGB2GRAY)
+
             err = np.sqrt(np.sum((ori_gray-rc_gray)**2))
             errs.append(int(err))
 

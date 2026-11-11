@@ -8,7 +8,6 @@ keypoints = sift.detect(self.img_gray_1, None)
 使用 `cv2.drawKeypoints()` 畫出圖片中的keypoints。
 ```python
 result = cv2.drawKeypoints(self.img_gray_1, keypoints, 0, (0,255,0), cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
-
 ```
 ## 4.2 Matched Keypoints
 ### Detect keypoints and compute descriptors

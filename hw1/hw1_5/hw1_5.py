@@ -206,7 +206,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         
         model = VGG19(10)
-        model.load_state_dict(torch.load(f="./vgg19_4096_4096_model.pth",map_location=torch.device('cpu') ))
+        model.load_state_dict(torch.load(f="./vgg19_model.pth",map_location=torch.device('cpu') ))
         model.eval()
         #image = Image.open('0.jpg')
         x = TF.to_tensor(self.img)

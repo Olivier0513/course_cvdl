@@ -187,8 +187,8 @@ class MainWindow(QtWidgets.QMainWindow):
         plt.show()           
     
     def ShowAccuracy(self):
-        img1 = cv2.imread('accuracy.png')
-        img2 = cv2.imread('loss.png')
+        img1 = cv2.imread('./png/accuracy.png')
+        img2 = cv2.imread('./png/loss.png')
         plt.figure()
         plt.imshow(img1)
         plt.axis('off')
